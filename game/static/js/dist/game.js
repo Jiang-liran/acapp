@@ -219,7 +219,7 @@ class Player extends AcGameObject {
 
         $(window).keydown(function(e) {
             if (outer.radius < 10) return false; // 这里监听下如果玩家死了，按q键就没有用了
-            if (e.which === 81) { //81指q按键
+            if (e.which === 81) { //81指键盘q键
                 outer.cur_skill = "fireball";
                 return false;
             }
