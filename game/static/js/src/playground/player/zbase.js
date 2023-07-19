@@ -61,6 +61,9 @@ class Player extends AcGameObject {
                 outer.cur_skill = "fireball";
                 return false;
             }
+            if (e.which === 83) {
+                outer.stop();
+            }
         });
     }
 
@@ -88,6 +91,10 @@ class Player extends AcGameObject {
         this.vy = Math.sin(angle);
     }
 
+    stop() {
+        this.vx = this.vy = 0;
+    }
+
     is_attacked(angle, damage) {
 
         for (let i = 0; i < 20 + Math.random() * 10; i ++){
@@ -102,7 +109,7 @@ class Player extends AcGameObject {
         }
 
             this.radius -= damage;
-            if (this.radius < 10) {
+            if (this.radius < this.eps) {
                 this.destroy();
                 return false;
             }
