@@ -9,3 +9,5 @@
 **闪现（暂未实装）：** 按一下`f`，鼠标左键点击任意地点即可闪现到指定地点
 
 **停止移动：** 按一下`s`即停止移动
+
+**游玩地址：** https://app4585.acapp.acwing.com.cn/ 或 [点击我](https://app4585.acapp.acwing.com.cn/)
