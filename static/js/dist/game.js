@@ -191,7 +191,6 @@ class Particle extends AcGameObject {
 class Player extends AcGameObject {
     constructor(playground, x, y, radius, color, speed, character, username, photo) {
 
-        console.log(character, username, photo);
 
         super();
         this.playground = playground;
@@ -240,7 +239,12 @@ class Player extends AcGameObject {
         this.playground.game_map.$canvas.mousedown(function(e) {
             const rect = outer.ctx.canvas.getBoundingClientRect();
             if (e.which === 3) {
-                outer.move_to((e.clientX - rect.left) / outer.playground.scale, (e.clientY - rect.top) / outer.playground.scale);
+                let tx = (e.clientX - rect.left) / outer.playground.scale;
+                let ty = (e.clientY - rect.top) / outer.playground.scale;
+                outer.move_to(tx, ty);
+                if (outer.playground.mode === "multi mode") {
+                    outer.playground.mps.send_move_to(tx, ty);
+                }
             } else if (e.which === 1) {
                 if (outer.cur_skill === "fireball") {
                     outer.shoot_fireball((e.clientX - rect.left) / outer.playground.scale, (e.clientY - rect.top) / outer.playground.scale);
@@ -287,7 +291,9 @@ class Player extends AcGameObject {
     }
 
     stop() {
-        this.vx = this.vy = 0;
+        if (this.playground.mode === "single mode"){
+            this.vx = this.vy = 0;
+        }
     }
 
     is_attacked(angle, damage) {
@@ -473,6 +479,8 @@ class MultiPlayerSocket {
             let event = data.event;
             if (event === "create_player") {
                 outer.receive_create_player(uuid, data.username, data.photo);
+            } else if (event === "move_to") {
+                outer.receive_move_to(uuid, data.tx, data.ty);
             }
         };
     }
@@ -485,6 +493,17 @@ class MultiPlayerSocket {
             'username': username,
             'photo': photo,
         }));
+    }
+
+    get_player(uuid) {
+        let players = this.playground.players;
+        for (let i = 0; i < players.length; i ++) {
+            let player = players[i];
+            if (player.uuid === uuid)
+                return player;
+        }
+
+        return null;
     }
 
     receive_create_player(uuid, username, photo) {
@@ -501,7 +520,25 @@ class MultiPlayerSocket {
         );
 
         player.uuid = uuid;
-        this.playground.players.push(player)
+        this.playground.players.push(player);
+    }
+
+    send_move_to(tx, ty) {
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "move_to",
+            'uuid': outer.uuid,
+            'tx': tx,
+            'ty': ty,
+        }));
+    }
+
+    receive_move_to(uuid, tx, ty) {
+        let player = this.get_player(uuid);
+
+        if (player) {
+            player.move_to(tx, ty);
+        }
     }
 }
 class AcGamePlayground {
@@ -545,6 +582,8 @@ class AcGamePlayground {
         this.width = this.$playground.width();
         this.height = this.$playground.height();
         this.game_map = new GameMap(this);
+
+        this.mode = mode;
 
         this.resize();
 
@@ -724,7 +763,6 @@ class Settings {
             url: "https://app4585.acapp.acwing.com.cn/settings/acwing/web/apply_code/",
             type: "GET",
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     window.location.replace(resp.apply_code_url);
                 }
@@ -746,7 +784,6 @@ class Settings {
                 password: password,
             },
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 } else {
@@ -772,7 +809,6 @@ class Settings {
                 password_confirm: password_confirm,
             },
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload(); // 刷新页面
                 } else {
@@ -783,18 +819,19 @@ class Settings {
     }
 
     logout_on_remote() { // 在远程服务器上登出
-        if (this.platform === "ACAPP") return false;
-
-        $.ajax({
-            url: "https://app4585.acapp.acwing.com.cn/settings/logout/",
-            type: "GET",
-            success: function(resp) {
-                console.log(resp);
-                if (resp.result === "success") {
-                    location.reload();
+        if (this.platform === "ACAPP") {
+            this.root.AcWingOS.api.window.close();
+        } else {
+            $.ajax({
+                url: "https://app4585.acapp.acwing.com.cn/settings/logout/",
+                type: "GET",
+                success: function(resp) {
+                    if (resp.result === "success") {
+                        location.reload();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     register() { // 打开注册界面
@@ -811,8 +848,6 @@ class Settings {
         let outer = this;
 
         this.root.AcWingOS.api.oauth2.authorize(appid, redirect_uri, scope, state, function(resp) {
-            console.log("called form acapp_login function");
-            console.log(resp);
             if (resp.result === "success") {
                 outer.username = resp.username;
                 outer.photo = resp.photo;
@@ -846,7 +881,6 @@ class Settings {
                 platform: outer.platform,
             },
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     outer.username = resp.username;
                     outer.photo = resp.photo;
