@@ -70,6 +70,57 @@ class MultiPlayer(AsyncWebsocketConsumer):
             }
         )
 
+    async def shoot_fireball(self, data):
+        await self.channel_layer.group_send(
+            self.room_name,
+            {
+                'type': "group_send_event",
+                'event': "shoot_fireball",
+                'uuid': data['uuid'],
+                'tx': data['tx'],
+                'ty': data['ty'],
+                'ball_uuid': data['ball_uuid'],
+            }
+        )
+
+    async def attack(self, data):
+        await self.channel_layer.group_send(
+            self.room_name,
+            {
+                'type': "group_send_event",
+                'event': "attack",
+                'uuid': data['uuid'],
+                'attackee_uuid': data['attackee_uuid'],
+                'x': data['x'],
+                'y': data['y'],
+                'angle': data['angle'],
+                'damage': data['damage'],
+                'ball_uuid': data['ball_uuid'],
+            }
+        )
+
+    async def blink(self, data):
+        await self.channel_layer.group_send(
+            self.room_name,
+            {
+                'type': "group_send_event",
+                'event': "blink",
+                'uuid': data['uuid'],
+                'tx': data['tx'],
+                'ty': data['ty'],
+            }
+        )
+
+    async def stop(self, data):
+        await self.channel_layer.group_send(
+            self.room_name,
+            {
+                'type': "group_send_event",
+                'event': "stop",
+                'uuid': data['uuid'],
+            }
+        )
+
     async def receive(self, text_data):
         data = json.loads(text_data)
         event = data['event']
@@ -77,3 +128,11 @@ class MultiPlayer(AsyncWebsocketConsumer):
             await self.create_player(data)
         elif event == "move_to":
             await self.move_to(data)
+        elif event == "shoot_fireball":
+            await self.shoot_fireball(data)
+        elif event == "attack":
+            await self.attack(data)
+        elif event == "blink":
+            await self.blink(data)
+        elif event == "stop":
+            await self.stop(data)

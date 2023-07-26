@@ -92,10 +92,6 @@ class Player extends AcGameObject {
                         return false;
 
                     outer.blink(tx, ty);
-
-                    if (outer.playground.mode === "multi mode") {
-                        outer.playground.mps.send_blink(tx, ty);
-                    }
                 }
 
                 outer.cur_skill = null;
@@ -115,16 +111,12 @@ class Player extends AcGameObject {
             } else if (e.which === 68) {  // d键，哥们儿D闪玩家
                 if (outer.blink_coldtime > outer.eps)
                     return true;
-
                 outer.cur_skill = "blink";
                 return false;
             }
 
             if (e.which === 83) {
                 outer.stop();
-                if (outer.playground.mode === "multi mode") {
-                    outer.playground.mps.send_stop();
-                }
             }
         });
     }
@@ -161,9 +153,6 @@ class Player extends AcGameObject {
         let angle = Math.atan2(ty - this.y, tx - this.x);
         this.x += d * Math.cos(angle);
         this.y += d * Math.sin(angle);
-
-        this.blink_coldtime = 5;
-        this.move_length = 0;  // 闪现完停下来
     }
 
     get_dist(x1, y1, x2, y2) {
@@ -180,7 +169,9 @@ class Player extends AcGameObject {
     }
 
     stop() {
-            this.move_length = 0;
+        if (this.playground.mode === "single mode"){
+            this.vx = this.vy = 0;
+        }
     }
 
     is_attacked(angle, damage) {
@@ -309,31 +300,9 @@ class Player extends AcGameObject {
             this.ctx.fillStyle = "rgba(0, 0, 255, 0.6)";
             this.ctx.fill();
         }
-
-        x = 1.62, y = 0.9, r = 0.04;
-        this.ctx.save();
-        this.ctx.beginPath();
-        this.ctx.arc(x * scale, y * scale, r * scale, 0, Math.PI * 2, false);
-        this.ctx.stroke();
-        this.ctx.clip();
-        this.ctx.drawImage(this.blink_img, (x - r) * scale, (y - r) * scale, r * 2 * scale, r * 2 * scale);
-        this.ctx.restore();
-
-        if (this.blink_coldtime > 0) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x * scale, y * scale);
-            this.ctx.arc(x * scale, y * scale, r * scale, 0 - Math.PI / 2, Math.PI * 2 * (1 - this.blink_coldtime / 5) - Math.PI / 2, true);
-            this.ctx.lineTo(x * scale, y * scale);
-            this.ctx.fillStyle = "rgba(0, 0, 255, 0.6)";
-            this.ctx.fill();
-        }
     }
 
     on_destroy() {
-        if (this.character === "me") {
-            this.playground.state = "over";
-        }
-
         for (let i = 0; i < this.playground.players.length; i ++ ) {
             if (this.playground.players[i] === this) {
                 this.playground.players.splice(i, 1);
